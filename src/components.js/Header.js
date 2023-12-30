@@ -1,28 +1,18 @@
 import React from "react";
-import menu from "../utils/icons/menu.svg";
 
-const title = (
+export const title = (
   <h1 className="text-3xl font-bold">
-    <span className="text-slate-700">Blind</span>
-    <span className="text-orange-800">Box</span>
+    <span className="text-white">Blind</span>
+    <span className="text-orange-700">Box</span>
   </h1>
 );
 
 const Header = () => {
   return (
-    <div className="my-2 py-2 px-3 flex justify-between shadow-sm ">
-      <div className="flex ">
-        <img
-          className="py-2 px-3 mx-3   rounded-full hover:bg-gray-100"
-          src={menu}
-          alt="icon"
-        />
-        <div>{title}</div>
-      </div>
-
-      <div className="mx-2">
+    <div className=" py-6 px-3 flex border-b border-solid border-gray-500">
+      <div className="mx-2 ">
         <input
-          className="py-2 px-4 w-96   bg-gray-100 rounded-full   "
+          className="py-2 px-10 w-96 bg-gray-700 rounded-full   "
           type="text"
           placeholder="Search"
         />
