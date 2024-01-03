@@ -1,3 +1,5 @@
+
+
 export const postDetail = [
   {
     name: "Yashodeep",

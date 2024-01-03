@@ -13,7 +13,7 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="flex p-6 ">
+    <div className="flex p-6 shadow-lg ">
       <div className="">
         <img className="bg-gray-500 p-2 rounded-full" src={userIcon} />
       </div>

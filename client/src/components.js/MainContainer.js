@@ -6,7 +6,7 @@ import { useSelector } from "react-redux";
 
 const MainContainer = () => {
   return (
-    <div className="h-screen bg-gray-800 text-white top-0 left-0  overflow-y-auto ">
+    <div className="h-screen bg-gray-800 text-white top-0 left-0 overflow-y-auto  ">
       <Header />
       <CreatePost />
 
