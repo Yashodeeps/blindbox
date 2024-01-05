@@ -41,7 +41,7 @@ const userSchema = new Schema(
 
 //sust before saving, dcrypt the password, we dont save password as it is in the database but encrypt it and then save it
 //it is a hook
-userSchema.pre("save", async function () {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, 10); //here 10 are rounds of encription you want
