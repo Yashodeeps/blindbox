@@ -124,8 +124,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined,
+            $unset: {
+                refreshToken: 1, //removes the field from document
             },
         },
         {
@@ -276,9 +276,87 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password");
 
+    //todo: delete old image from cloudinary
+
     return res
         .status(200)
         .json(new ApiResponse(200, user, "avatar updated successfully"));
+});
+
+const getUserProfile = asyncHandler(async (req, res) => {
+    //we usally get the user profike through URL
+    const { username } = req.params;
+
+    if (!username?.trim()) {
+        throw new ApiError(400, "Username is missing");
+    }
+
+    const profile = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase(),
+            },
+        },
+        {
+            $lookup: {
+                from: "followings", //everything in the data base gets converted into pural and lower case
+                localField: "_id",
+                foreignField: "account", //selecting all accounts will give all the followers
+                as: "followers",
+            },
+        },
+        {
+            $lookup: {
+                from: "followings",
+                localField: "_id",
+                foreignField: "follower", //selecting all followers will give following count
+                as: "followings",
+            },
+        },
+        {
+            $addFields: {
+                followerCount: {
+                    $size: "$followers", //we add $ because ita a field now
+                },
+                followingCount: {
+                    $size: "$followings",
+                },
+                isFollowing: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$followers.follower"] },
+                        then: true,
+                        else: false,
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                nickName: 1,
+                username: 1,
+                followerCount: 1,
+                followingCount: 1,
+                isFollowing: 1,
+                avatar: 1,
+                email: 1,
+            },
+        },
+    ]);
+    console.log(profile);
+
+    if (!profile?.length) {
+        throw new ApiError(404, "Account does not exist");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                profile[0],
+                "user channer fetched successfully"
+            )
+        );
 });
 
 //use Zod for valadation
@@ -292,4 +370,5 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
+    getUserProfile,
 };

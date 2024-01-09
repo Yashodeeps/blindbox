@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const followingSchema = new Schema(
     {
@@ -15,3 +15,5 @@ const followingSchema = new Schema(
     },
     { timestamps: true }
 );
+
+export const Following = new mongoose.model("Following", followingSchema);
