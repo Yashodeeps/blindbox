@@ -22,9 +22,15 @@ app.use(cookieParser());
 //routes import
 import userRouter from "./routes/user.routs.js";
 import postRouter from "./routes/post.routes.js";
+import bookmarkRouter from "./routes/bookmark.routes.js";
+import commentRouter from "./routes/comment.route.js";
+import voteRouter from "./routes/vote.route.js";
 
 //routes declaration
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/posts", postRouter);
+app.use("/api/v1/bookmarks", bookmarkRouter);
+app.use("/api/v1/votes", voteRouter);
+app.use("/api/v1/comments", commentRouter);
 
 export { app };

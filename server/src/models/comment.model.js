@@ -17,18 +17,11 @@ const commentSchema = new Schema(
             type: String,
             required: true,
         },
-        likes: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Likes",
-            },
-        ],
-        dislikes: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Likes",
-            },
-        ],
+        parentComment: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Comment",
+        },
+
         nestedComments: [
             {
                 type: mongoose.Schema.Types.ObjectId,

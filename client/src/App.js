@@ -9,15 +9,15 @@ function App() {
   return (
     <Provider store={appStore}>
       <div className="flex ">
-        {/* <div className="w-1/4">
+        <div className="w-1/4">
           <SideMenu />
-        </div> */}
+        </div>
         <div className="flex-1 w-1/5">
           <MainContainer />
         </div>
-        {/* <div className="w-1/3">
+        <div className="w-1/3">
           <NavMenu />
-        </div> */}
+        </div>
       </div>
     </Provider>
   );

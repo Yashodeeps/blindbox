@@ -1,25 +1,22 @@
 import mongoose, { Schema } from "mongoose";
 
-const likesSchema = new Schema(
+const voteSchema = new Schema(
     {
         user: {
             type: Schema.Types.ObjectId,
             ref: "User",
-            required: true,
         },
         post: {
             type: Schema.Types.ObjectId,
             ref: "Post",
-            required: true,
         },
         comment: {
             type: Schema.Types.ObjectId,
             ref: "Comment",
         },
-        likeType: {
+        voteType: {
             type: String,
-            enum: ["like", "dislike"],
-            required: true,
+            enum: ["upvote", "downvote"],
         },
     },
     {
@@ -27,4 +24,12 @@ const likesSchema = new Schema(
     }
 );
 
-const Likes = mongoose.model("Likes", likesSchema);
+voteSchema.set("toJSON", {
+    transform: function (doc, ret) {
+        // Remove circular references
+        delete ret._id;
+        delete ret.__v;
+    },
+});
+
+export const Vote = mongoose.model("Vote", voteSchema);

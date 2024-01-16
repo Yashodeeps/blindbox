@@ -21,7 +21,7 @@ const createPost = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if (!content) {
-        throw ApiError(404, "Post content not found");
+        throw new ApiError(404, "Post content not found");
     }
 
     const post = await Post.create({
@@ -31,7 +31,7 @@ const createPost = asyncHandler(async (req, res) => {
     });
 
     if (!post) {
-        throw ApiError(500, "Ubable to create post");
+        throw new ApiError(500, "Ubable to create post");
     }
 
     return res
@@ -39,4 +39,38 @@ const createPost = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, post, "post created successfully"));
 });
 
-export { createPost, getAllPosts };
+const deletPost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+
+    if (!postId) {
+        throw new ApiError(400, "postId not found");
+    }
+
+    await Post.findByIdAndDelete(postId);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Post deleated successfully"));
+});
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+        throw new ApiError(400, "the post doesn't exist");
+    }
+
+    post.published = !post.published;
+
+    const postStatus = await post.save();
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, postStatus, "Successfully changed post states")
+        );
+});
+
+export { createPost, getAllPosts, deletPost, togglePublishStatus };
