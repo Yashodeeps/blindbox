@@ -1,17 +1,16 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
-    addToBookmark,
     getAllBookmarks,
-    removeBookmark,
+    toggleBookmark,
 } from "../controllers/bookmark.controller.js";
 
 const router = Router();
 
 router.use(verifyJWT);
 
-router.route("/").post(addToBookmark).delete(removeBookmark);
+router.route("/:postId").post(toggleBookmark);
 
-router.route("/b/:ownerId").get(getAllBookmarks);
+router.route("/").get(getAllBookmarks);
 
 export default router;
