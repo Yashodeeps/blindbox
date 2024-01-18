@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const followingSchema = new Schema(
+const followSchema = new Schema(
     {
         follower: {
             //one who is following
@@ -16,4 +16,4 @@ const followingSchema = new Schema(
     { timestamps: true }
 );
 
-export const Following = new mongoose.model("Following", followingSchema);
+export const Follow = mongoose.model("Follow", followSchema);

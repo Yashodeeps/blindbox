@@ -103,7 +103,7 @@ const votetoComment = asyncHandler(async (req, res) => {
 // });
 
 const getTotalUpVotesOfPost = asyncHandler(async (req, res) => {
-    const userId = req.user;
+    const userId = req.user._id;
 
     const isValidObjectId = Types.ObjectId.isValid(userId);
     if (!isValidObjectId) {
@@ -124,20 +124,9 @@ const getTotalUpVotesOfPost = asyncHandler(async (req, res) => {
                 as: "likedposts",
                 pipeline: [
                     {
-                        $lookup: {
-                            from: "users",
-                            localField: "user",
-                            foreignField: "_id",
-                            as: "owner",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        username: 1,
-                                        nickname: 1,
-                                        avatar: 1,
-                                    },
-                                },
-                            ],
+                        $project: {
+                            user: 1,
+                            post: 1,
                         },
                     },
                 ],
@@ -145,7 +134,7 @@ const getTotalUpVotesOfPost = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                first: "$owner",
+                first: "$likedposts",
             },
         },
     ]);
