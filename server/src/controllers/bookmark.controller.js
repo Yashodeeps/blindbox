@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 
 const toggleBookmark = asyncHandler(async (req, res) => {
     const { postId } = req.params;
+    const ownerId = new mongoose.Types.ObjectId(req.user._id);
 
     const post = await Post.findById(postId);
 
@@ -16,31 +17,42 @@ const toggleBookmark = asyncHandler(async (req, res) => {
     }
 
     const existingBookmark = await Bookmark.findOne({
-        owner: new mongoose.Types.ObjectId(req.user._id),
-        post: new mongoose.Types.ObjectId(postId),
+        owner: ownerId,
     });
 
     if (!existingBookmark) {
         const newBookmark = await Bookmark.create({
-            owner: new mongoose.Types.ObjectId(req.user._id),
-            post: post,
+            owner: ownerId,
+            post: [postId],
         });
         if (!newBookmark) {
             throw new ApiError(500, "Server issue while bookmarking");
         }
     } else {
-        await Bookmark.findByIdAndDelete(existingBookmark._id);
+        const isBookmarked = existingBookmark.posts.includes(post._id);
+
+        if (isBookmarked) {
+            existingBookmark.posts = existingBookmark.posts.filter(
+                (id) => id.toString() !== post._id.toString()
+            );
+            await Bookmark.findByIdAndUpdate(existingBookmark._id, {
+                posts: existingBookmark.posts,
+            });
+        } else {
+            existingBookmark.posts.push(postId);
+            await Bookmark.findByIdAndUpdate(existingBookmark._id, {
+                posts: existingBookmark.posts,
+            });
+        }
     }
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, {}, "Bookmarked successfully"));
+    return res.status(200).json(new ApiResponse(200, {}, "bookmark toggled"));
 });
 
 const getAllBookmarks = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
-    const bookmarks = await Bookmark.find({ owner: userId }).populate("posts");
+    const bookmarks = await Bookmark.find({ owner: userId });
 
     if (!bookmarks) {
         throw new ApiError(404, "No bookmarks found");

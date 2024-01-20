@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
-    createComment,
+    createCommentToPost,
     createNestedComment,
-    deletComment,
+    deleteComment,
     getComments,
     getCommentsByUser,
 } from "../controllers/comment.controller.js";
@@ -12,12 +12,13 @@ const router = Router();
 
 router.use(verifyJWT);
 
-router.route("/:postId").get(getComments).post(createComment);
+router.route("/:postId").get(getComments).post(createCommentToPost);
 
-router.route("/:postId/nested").post(createNestedComment);
+router.route("/nested/:parentCommentId").post(createNestedComment);
 
-router.route("/c/:commentId").delete(deletComment);
+//TODO: check whether the deletion route can be mixed with the above route
+router.route("/d/:commentId").delete(deleteComment);
 
-router.route("/u/userId").get(getCommentsByUser);
+router.route("/replies").get(getCommentsByUser);
 
 export default router;

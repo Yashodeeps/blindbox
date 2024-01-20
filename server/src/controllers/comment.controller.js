@@ -19,25 +19,30 @@ const getComments = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { comments }, "commented"));
 });
 
-const createComment = asyncHandler(async (req, res) => {
-    const { content, owner, post } = req.body;
+const createCommentToPost = asyncHandler(async (req, res) => {
+    const { content } = req.body;
+    const { postId } = req.params;
+
+    if (!postId) {
+        throw new ApiError(404, "postId required");
+    }
     const newComment = await Comment.create({
-        owner,
-        post,
+        owner: req.user._id,
+        post: postId,
         content,
     });
-
     if (!newComment) {
         throw new ApiError(500, "Server error while creating comment");
     }
-
     return res
         .status(200)
         .json(200, { newComment }, "Comment created successfully");
 });
 
 const createNestedComment = asyncHandler(async (req, res) => {
-    const { content, owner, post, parentCommentId } = req.body;
+    const { content } = req.body;
+    const { parentCommentId } = req.params;
+
     const parentComment = await Comment.findById(parentCommentId);
 
     if (!parentComment) {
@@ -45,8 +50,7 @@ const createNestedComment = asyncHandler(async (req, res) => {
     }
 
     const newNestedComment = await Comment.create({
-        owner,
-        post,
+        owner: req.user._id,
         content,
         parentComment: parentCommentId,
     });
@@ -68,28 +72,60 @@ const createNestedComment = asyncHandler(async (req, res) => {
         .json(200, { newNestedComment }, "Comment created successfully");
 });
 
-const deletComment = asyncHandler(async (req, res) => {
+const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
 
-    const deleatedComment = await Comment.findByIdAndDelete(commentId);
+    const commentToDelete = await Comment.findByIdAndDelete(commentId);
 
-    if (!deleatedComment) {
+    if (!commentToDelete) {
         throw new ApiError(404, "Comment not found");
     }
 
-    return res.status(
-        200,
-        { deleatedComment },
-        "comment deleated successfully"
-    );
+    let deletedComment;
+
+    if (commentToDelete.parentComment) {
+        // The comment is a nested comment
+        const parentComment = await Comment.findById(
+            commentToDelete.parentComment
+        );
+
+        if (parentComment) {
+            // Remove the comment ID from the parent comment's nestedComments array
+            await Comment.findByIdAndUpdate(parentComment._id, {
+                $pull: {
+                    nestedComments: commentToDelete._id,
+                },
+            });
+        }
+    }
+
+    // Delete the comment
+    try {
+        deletedComment = await Comment.findByIdAndDelete(commentId);
+    } catch (error) {
+        throw new ApiError(500, "Error deleting comment");
+    }
+
+    if (!deletedComment) {
+        throw new ApiError(404, "Comment not found after deletion attempt");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { commentToDelete },
+                "Comment deleted successfully"
+            )
+        );
 });
 
 const getCommentsByUser = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
+    const userId = req.user._id;
 
-    const userComments = await Comment.find({ owner: userId })
-        .populate("post", "content")
-        .populate("parentComment", "content");
+    const userComments = await Comment.find({ owner: userId });
+
     if (!userComments) {
         throw new ApiError(404, "Comments not found");
     }
@@ -99,8 +135,8 @@ const getCommentsByUser = asyncHandler(async (req, res) => {
 
 export {
     getComments,
-    createComment,
+    createCommentToPost,
     createNestedComment,
     getCommentsByUser,
-    deletComment,
+    deleteComment,
 };
