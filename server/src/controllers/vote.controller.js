@@ -2,23 +2,41 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Vote } from "../models/vote.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
-const votetoPost = asyncHandler(async (req, res) => {
+const togglePostVotes = asyncHandler(async (req, res) => {
     const { postId } = req.params;
-    const { userId } = req.user;
+    const userId = req.user._id;
     const { voteType } = req.body;
 
-    const existingVote = await Vote.findOneAndDelete({
-        user: userId,
-        post: postId,
-    });
+    let existingVote;
+
+    if (voteType === "downvote") {
+        // If the new vote is a downvote, remove any existing upvote
+        existingVote = await Vote.findOneAndDelete({
+            user: userId,
+            post: postId,
+            voteType: "upvote",
+        });
+    }
+    if (voteType == "downvote") {
+        // If the new vote is an upvote, remove any existing downvote
+        existingVote = await Vote.findOneAndDelete({
+            user: userId,
+            post: postId,
+            voteType: "downvote",
+        });
+    }
 
     if (existingVote) {
         return res
             .status(200)
             .json(
-                new ApiResponse(200, { existingVote }, `${voteType} removed`)
+                new ApiResponse(
+                    200,
+                    { existingVote },
+                    `${existingVote} removed`
+                )
             );
     }
 
@@ -37,28 +55,46 @@ const votetoPost = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { newVote }, `${voteType}d successfully`));
 });
 
-const votetoComment = asyncHandler(async (req, res) => {
+const toggleCommentVotes = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
-    const { userId } = req.user;
-    const voteType = req.body;
+    const userId = req.user._id;
+    const { voteType } = req.body;
 
-    const existingVote = await Vote.findOneAndDelete({
-        user: userId,
-        post: postId,
-    });
+    let existingVote;
+
+    if (voteType === "downvote") {
+        // If the new vote is a downvote, remove any existing upvote
+        existingVote = await Vote.findOneAndDelete({
+            user: userId,
+            comment: commentId,
+            voteType: "upvote",
+        });
+    }
+    if (voteType == "downvote") {
+        // If the new vote is an upvote, remove any existing downvote
+        existingVote = await Vote.findOneAndDelete({
+            user: userId,
+            comment: commentId,
+            voteType: "downvote",
+        });
+    }
 
     if (existingVote) {
         return res
             .status(200)
             .json(
-                new ApiResponse(200, { existingVote }, `${voteType} removed`)
+                new ApiResponse(
+                    200,
+                    { existingVote },
+                    `${existingVote} removed`
+                )
             );
     }
 
     const newVote = await Vote.create({
         user: userId,
         comment: commentId,
-        voteType,
+        voteType: voteType,
     });
 
     if (!newVote) {
@@ -70,149 +106,126 @@ const votetoComment = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { newVote }, `${voteType}d successfully`));
 });
 
-// const downVote = asyncHandler(async (req, res) => {
-//     const { postId, commentId } = req.params;
-//     const userId = req.user;
+const getTotalVotesOfPost = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
 
-//     const existingDownVote = await Vote.findOneAndDelete({
-//         user: userId,
-//         post: postId,
-//         Comment: commentId,
-//     });
+    const totalupvotes = await Vote.find({
+        post: new mongoose.Types.ObjectId(postId),
+        voteType: "upvote",
+    });
 
-//     const newDownVote = await Vote.create({
-//         user: userId,
-//         post: postId,
-//         Comment: commentId,
-//         voteType: "downvote",
-//     });
-
-//     if (!newDownVote || !existingDownVote) {
-//         throw new ApiError(500, "Server issue with upVoting");
-//     }
-
-//     return res
-//         .status(200)
-//         .json(
-//             new ApiResponse(
-//                 200,
-//                 { newDownVote, existingDownVote },
-//                 "Reacted successfully"
-//             )
-//         );
-// });
-
-const getTotalUpVotesOfPost = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
-
-    const isValidObjectId = Types.ObjectId.isValid(userId);
-    if (!isValidObjectId) {
-        throw new ApiError(400, "invalid userId");
+    if (!totalupvotes) {
+        throw new ApiError(400, "No upvotes");
     }
 
-    const totalUpVotes = await Vote.aggregate([
-        {
-            $match: {
-                user: new Types.ObjectId(userId),
-            },
-        },
-        {
-            $lookup: {
-                from: "posts",
-                localField: "post",
-                foreignField: "_id",
-                as: "likedposts",
-                pipeline: [
-                    {
-                        $project: {
-                            user: 1,
-                            post: 1,
-                        },
-                    },
-                ],
-            },
-        },
-        {
-            $addFields: {
-                first: "$likedposts",
-            },
-        },
-    ]);
+    const totaldownvotes = await Vote.find({
+        post: new mongoose.Types.ObjectId(postId),
+        voteType: "downvote",
+    });
 
-    return res.status(200).json(
+    if (!totalupvotes) {
+        throw new ApiError(400, "No downvotess");
+    }
+
+    res.status(200).json(
         new ApiResponse(
             200,
-
-            { upVotedPosts: totalUpVotes },
-
-            "total upvotes fetched"
+            {
+                totalUpvotes: totalupvotes,
+                totalUpVotesCount: totalupvotes.length,
+                totaldownvotes: totaldownvotes,
+                totaldownvotesCount: totaldownvotes.length,
+            },
+            "votes fetched successfully"
         )
     );
 });
 
-// const getTotalDownVotes = asyncHandler(async (req, res) => {
-//     const { postId, commentId } = req.params;
+const getTotalVotesOfComment = asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
 
-//     const totalDownVotes = Vote.countDocuments({
-//         post: postId,
-//         Comment: commentId,
-//         voteType: "downvote",
-//     });
+    const totalupvotes = await Vote.find({
+        comment: new mongoose.Types.ObjectId(commentId),
+        voteType: "upvote",
+    });
 
-//     if (!totalDownVotes) {
-//         throw new ApiError(400, "Invalid postId or commentId");
-//     }
+    if (!totalupvotes) {
+        throw new ApiError(400, "No upvotes");
+    }
 
-//     return res
-//         .status(200)
-//         .json(
-//             new ApiResponse(200, { totalDownVotes }, "total DownVotes fetched")
-//         );
-// });
+    const totaldownvotes = await Vote.find({
+        comment: new mongoose.Types.ObjectId(commentId),
+        voteType: "downvote",
+    });
 
-// const getTotalUpvotedByUser = asyncHandler(async (req, res) => {
-//     const { userId } = req.user;
+    if (!totalupvotes) {
+        throw new ApiError(400, "No downvotess");
+    }
 
-//     const totalUpvotes = Vote.find({
-//         user: userId,
-//         Comment: commentId,
-//         voteType: "upvote",
-//     });
+    res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                totalUpvotes: totalupvotes,
+                totalUpVotesCount: totalupvotes.length,
+                totaldownvotes: totaldownvotes,
+                totaldownvotesCount: totaldownvotes.length,
+            },
+            "votes fetched successfully"
+        )
+    );
+});
 
-//     if (!totalUpvotes) {
-//         throw new ApiError(400, "invalid userId");
-//     }
+const userVotes = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
 
-//     return res
-//         .status(200)
-//         .json(new ApiResponse(200, { totalUpvotes }, "Total votes fetched"));
-// });
+    const totalUpVotes = await Vote.aggregate([
+        {
+            $match: {
+                user: new mongoose.Types.ObjectId(userId),
+                voteType: "upvote",
+            },
+        },
+        {
+            $project: {
+                user: 1,
+                post: 1,
+                comment: 1,
+            },
+        },
+    ]);
 
-// const getTotalDownvotedByUser = asyncHandler(async (req, res) => {
-//     const { userId } = req.user;
+    const totalDownVotes = await Vote.aggregate([
+        {
+            $match: {
+                user: new mongoose.Types.ObjectId(userId),
+                voteType: "downvote",
+            },
+        },
+        {
+            $project: {
+                user: 1,
+                post: 1,
+                comment: 1,
+            },
+        },
+    ]);
 
-//     const totalDownvotes = Vote.find({
-//         user: userId,
-//         Comment: commentId,
-//         voteType: "downvote",
-//     });
-
-//     if (!totalDownvotes) {
-//         throw new ApiError(400, "invalid userId");
-//     }
-
-//     return res
-//         .status(200)
-//         .json(
-//             new ApiResponse(200, { totalDownvotes }, "Total down votes fetched")
-//         );
-// });
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { totalUpVotes: totalUpVotes, totalDownVotes: totalDownVotes },
+                "Total votes fetched"
+            )
+        );
+});
 
 export {
-    votetoPost,
-    votetoComment,
-    getTotalUpVotesOfPost,
-    // getTotalDownVotes,
-    // getTotalUpvotedByUser,
-    // getTotalDownvotedByUser,
+    togglePostVotes,
+    getTotalVotesOfPost,
+    toggleCommentVotes,
+    getTotalVotesOfComment,
+    userVotes,
 };
